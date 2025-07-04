@@ -12,6 +12,7 @@ class BaseKafkaProducer:
         self.producer = AIOKafkaProducer(
             bootstrap_servers=self.bootstrap_servers,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            key_serializer=lambda k: k.encode("utf-8") if k else None,
         )
 
     async def start(self):
@@ -22,9 +23,9 @@ class BaseKafkaProducer:
         await self.producer.stop()
         logger.info("🛑 Kafka producer stopped")
 
-    async def send(self, topic: str, message: dict):
+    async def send(self, topic: str, value: dict, key: str | None = None):
         try:
-            await self.producer.send_and_wait(topic, message)
-            logger.info(f"📤 Message sent to topic {topic}: {message}")
+            await self.producer.send_and_wait(topic, value, key=key)
+            logger.info(f"📤 Message sent to topic {topic} with key={key}: {value}")
         except Exception as e:
             logger.exception(f"💥 Failed to send message to {topic}: {e}")
