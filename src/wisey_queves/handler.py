@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from wisey_queves.base.consumer import BaseKafkaConsumer
+from wisey_queves.consumer import BaseKafkaConsumer
 
 logger = logging.getLogger(__name__)
 
