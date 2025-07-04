@@ -5,7 +5,6 @@ description = "Kafka consumer/producer utilities for Wisey microservices"
 authors = [
     { name = "xxykzdev", email = "xxykzdev@gmail.com" }
 ]
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "aiokafka>=0.10.0"
