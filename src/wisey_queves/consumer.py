@@ -2,8 +2,10 @@ import os
 import json
 import logging
 from aiokafka import AIOKafkaConsumer
+from wisey_telemetry.telemetry import get_tracer, start_trace_span
 
 logger = logging.getLogger(__name__)
+tracer = get_tracer("kafka-consumer")
 
 
 class BaseKafkaConsumer:
@@ -30,4 +32,17 @@ class BaseKafkaConsumer:
 
     async def get_messages(self):
         async for msg in self.consumer:
-            yield msg.value
+            with start_trace_span("kafka.consume", {
+                "messaging.system": "kafka",
+                "messaging.destination": self.topic,
+                "messaging.kafka.message_key": msg.key.decode("utf-8") if msg.key else None,
+                "messaging.kafka.partition": msg.partition,
+                "messaging.kafka.offset": msg.offset,
+            }) as span:
+                span.add_event("Kafka message received", attributes={
+                    "topic": self.topic,
+                    "partition": msg.partition,
+                    "offset": msg.offset,
+                    "key": msg.key.decode("utf-8") if msg.key else None,
+                })
+                yield msg.value

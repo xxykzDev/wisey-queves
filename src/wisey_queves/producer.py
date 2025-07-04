@@ -2,8 +2,10 @@ import os
 import json
 import logging
 from aiokafka import AIOKafkaProducer
+from wisey_telemetry.telemetry import get_tracer, start_trace_span
 
 logger = logging.getLogger(__name__)
+tracer = get_tracer("base-kafka-producer")
 
 
 class BaseKafkaProducer:
@@ -24,8 +26,19 @@ class BaseKafkaProducer:
         logger.info("🛑 Kafka producer stopped")
 
     async def send(self, topic: str, value: dict, key: str | None = None):
-        try:
-            await self.producer.send_and_wait(topic, value, key=key)
-            logger.info(f"📤 Message sent to topic {topic} with key={key}: {value}")
-        except Exception as e:
-            logger.exception(f"💥 Failed to send message to {topic}: {e}")
+        with start_trace_span("kafka.produce", {
+            "messaging.system": "kafka",
+            "messaging.destination": topic,
+            "messaging.kafka.message_key": key,
+        }) as span:
+            try:
+                await self.producer.send_and_wait(topic, value, key=key)
+                logger.info(f"📤 Message sent to topic {topic} with key={key}: {value}")
+                span.add_event("Message sent", attributes={
+                    "topic": topic,
+                    "key": key,
+                    "value": value,
+                })
+            except Exception as e:
+                logger.exception(f"💥 Failed to send message to {topic}: {e}")
+                span.record_exception(e)

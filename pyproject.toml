@@ -7,8 +7,10 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "aiokafka>=0.10.0"
+    "aiokafka>=0.10.0",
+    "wisey-telemetry @ git+https://github.com/xxykzDev/wisey-telemetry.git@main"
 ]
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
