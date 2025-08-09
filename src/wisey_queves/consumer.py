@@ -19,8 +19,31 @@ class BaseKafkaConsumer:
             group_id=self.group_id,
             auto_offset_reset="earliest",
             enable_auto_commit=True,
-            value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+            value_deserializer=self._safe_deserializer,
         )
+
+    def _safe_deserializer(self, message_value):
+        """
+        Safe deserializer that handles None/null values from Kafka
+        
+        Args:
+            message_value: Raw bytes from Kafka message (can be None for tombstone messages)
+            
+        Returns:
+            Parsed JSON dict or None for null messages
+        """
+        if message_value is None:
+            logger.debug(f"📭 Received null/tombstone message from Kafka topic: {self.topic}")
+            return None
+            
+        try:
+            return json.loads(message_value.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            logger.warning(f"⚠️ Failed to deserialize Kafka message on topic {self.topic}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"💥 Unexpected error deserializing message on topic {self.topic}: {e}")
+            return None
 
     async def start(self):
         await self.consumer.start()
