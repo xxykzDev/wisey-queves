@@ -36,7 +36,6 @@ class BaseKafkaProducer:
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             key_serializer=lambda k: k.encode("utf-8") if k else None,
             enable_idempotence=True,  # Ensure exactly-once delivery
-            max_in_flight_requests_per_connection=5,
             request_timeout_ms=30000,
             retry_backoff_ms=100,
             metadata_max_age_ms=300000,
