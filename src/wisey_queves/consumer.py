@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import sys
 from aiokafka import AIOKafkaConsumer
 from wisey_telemetry.telemetry import get_tracer, start_trace_span
 
@@ -54,7 +55,15 @@ class BaseKafkaConsumer:
         logger.info("🛑 Kafka consumer stopped")
 
     async def get_messages(self):
+        logger.info(f"🎯 Starting to consume messages from topic: {self.topic}")
+        print(f"🎯 Starting to consume messages from topic: {self.topic}", flush=True)
+        sys.stdout.flush()
+        
         async for msg in self.consumer:
+            logger.info(f"📬 Raw message received from Kafka - Offset: {msg.offset}, Partition: {msg.partition}")
+            print(f"📬 Raw message received from Kafka - Offset: {msg.offset}, Partition: {msg.partition}", flush=True)
+            sys.stdout.flush()
+            
             with start_trace_span("kafka.consume", {
                 "messaging.system": "kafka",
                 "messaging.destination": self.topic,
@@ -68,4 +77,7 @@ class BaseKafkaConsumer:
                     "offset": msg.offset,
                     "key": msg.key.decode("utf-8") if msg.key else None,
                 })
+                
+                logger.info(f"📤 Yielding message value: {type(msg.value)}")
+                print(f"📤 Yielding message value: {type(msg.value)}")
                 yield msg.value
