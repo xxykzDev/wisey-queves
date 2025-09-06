@@ -5,7 +5,25 @@ import asyncio
 from typing import Optional, Dict, Any
 from aiokafka import AIOKafkaProducer
 from aiokafka.errors import ProducerClosed, KafkaConnectionError
-from wisey_telemetry.telemetry import get_tracer, start_trace_span
+
+logger = logging.getLogger(__name__)
+
+# Try to import telemetry, but don't fail if not available
+try:
+    from wisey_telemetry.telemetry import get_tracer, start_trace_span
+    tracer = get_tracer("base-kafka-producer")
+    telemetry_available = True
+except ImportError:
+    telemetry_available = False
+    tracer = None
+    # Create a dummy context manager for when telemetry is not available
+    from contextlib import contextmanager
+    @contextmanager
+    def start_trace_span(name, attrs=None):
+        class DummySpan:
+            def add_event(self, *args, **kwargs): pass
+            def record_exception(self, *args, **kwargs): pass
+        yield DummySpan()
 
 # Try to import metrics, but don't fail if not available
 try:
@@ -14,9 +32,6 @@ try:
 except ImportError:
     metrics = None
     logger.warning("Kafka metrics not available - install wisey-telemetry with metrics support")
-
-logger = logging.getLogger(__name__)
-tracer = get_tracer("base-kafka-producer")
 
 
 class BaseKafkaProducer:
